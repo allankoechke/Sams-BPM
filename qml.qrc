@@ -1,0 +1,21 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/views/SplashScreen.qml</file>
+        <file>qml/controls/Icon.qml</file>
+        <file>qml/views/LoginScreen.qml</file>
+        <file>assets/fonts/fontawesome.otf</file>
+        <file>qml/views/HomeScreen.qml</file>
+        <file>qml/controls/MenuButton.qml</file>
+        <file>assets/images/Health _Flatline.png</file>
+        <file>qml/views/UserScreen.qml</file>
+        <file>qml/views/SettingsScreen.qml</file>
+        <file>qml/views/DoctorPatientScreen.qml</file>
+        <file>qml/controls/ChartWidget.qml</file>
+        <file>qml/controls/VitalWidget.qml</file>
+        <file>qml/delegates/ChatDelegate.qml</file>
+        <file>qml/controls/CircularTextField.qml</file>
+        <file>qml/models/ChatModel.qml</file>
+        <file>qml/controls/InfoPopup.qml</file>
+    </qresource>
+</RCC>
