@@ -8,6 +8,9 @@ import "../models"
 
 Item {
     id: root
+    width: mainApp.width
+
+    property bool isSendingMessage: false
 
     Rectangle
     {
@@ -141,6 +144,7 @@ Item {
                     placeholderText: "Enter Message here"
                     font.pixelSize: 12
                     clip: true
+                    readOnly: isSendingMessage
 
                     Layout.fillWidth: true
                     Layout.preferredHeight: 45
@@ -166,9 +170,10 @@ Item {
 
                     Icon
                     {
+                        id: ico_send
                         color: "green"
                         size: 20
-                        icon: "\uf1d8"
+                        icon: isSendingMessage? "\uf3f4":"\uf1d8"
 
                         anchors.centerIn: parent
                     }
@@ -179,6 +184,7 @@ Item {
                         onClicked: {
                             if( tfield.text != "" )
                             {
+                                isSendingMessage=true
                                 Backend.sendReply(tfield.text)
                             }
                         }
@@ -189,15 +195,38 @@ Item {
         }
     }
 
+    RotationAnimation
+    {
+        target: ico_send
+        from: 0; to: 360
+        running: isSendingMessage
+        loops: RotationAnimation.Infinite
+        duration: 800
+
+        onRunningChanged: {
+            if(!running)
+                ico_send.rotation=0
+        }
+    }
+
+    Timer
+    {
+        id: send
+        interval: 2500
+        repeat: false
+        onTriggered: isSendingMessage=false
+    }
+
     Connections
     {
         target: Backend
 
         function onDoctorsReplyStateChanged(state, info)
         {
+            send.start();
+
             if(state)
             {
-                // chatModel.append(JSON.parse('{"_receivedMsg": false, "body": "'+tfield.text+'", "received_on": "'+Qt.formatDateTime(new Date(), "ddd, hh:mm AP")+'"}'))
                 tfield.clear();
                 chat_list.positionViewAtEnd(chat_list.count-1, ListView.visible)
             }

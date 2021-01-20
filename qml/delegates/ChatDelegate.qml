@@ -73,7 +73,7 @@ Item {
 
                 Text {
                     id: dt_txt
-                    text: Qt.formatDateTime(new Date(), "ddd, hh:mm AP")
+                    text: date // Qt.formatDateTime(new Date(), "ddd, hh:mm AP")
                     font.pixelSize: 10
                     font.italic: true
                     color: receivedMsg? "white":"black"

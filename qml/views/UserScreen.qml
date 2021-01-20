@@ -114,6 +114,7 @@ Item {
                 anchors.fill: parent
                 onClicked: {
                     Backend.isLoggedIn = false;
+                    Backend.signOut();
                     stackCurrentIndex=1
                 }
             }

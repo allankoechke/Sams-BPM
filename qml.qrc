@@ -17,5 +17,6 @@
         <file>qml/controls/CircularTextField.qml</file>
         <file>qml/models/ChatModel.qml</file>
         <file>qml/controls/InfoPopup.qml</file>
+        <file>assets/images/icon.png</file>
     </qresource>
 </RCC>

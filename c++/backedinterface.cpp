@@ -14,7 +14,8 @@ BackendInterface::BackendInterface(QObject *parent) : QObject(parent)
     m_shuffle->setInterval(30000);
     m_shuffle->start();
     connect(m_shuffle, &QTimer::timeout, this, [=](){
-        std::random_shuffle(m_plotData.begin(), m_plotData.end());
+        if(m_isLoggedIn && !m_doctorMode)
+            std::random_shuffle(m_plotData.begin(), m_plotData.end());
     });
 
     applicationDir=qApp->applicationDirPath();
@@ -23,7 +24,7 @@ BackendInterface::BackendInterface(QObject *parent) : QObject(parent)
     qApp->setApplicationVersion("1.0.0");
     qApp->setApplicationDisplayName("ECG Health App");
     qApp->setOrganizationName("lalanke");
-    qApp->setWindowIcon(QIcon(":/assets/myHealth-logo-small.png"));
+    qApp->setWindowIcon(QIcon(":/assets/images/icon.png"));
     qApp->setOrganizationDomain("lalanke.com");
     settings = new QSettings(qApp->organizationName(),qApp->applicationDisplayName());
 
@@ -38,6 +39,14 @@ BackendInterface::BackendInterface(QObject *parent) : QObject(parent)
     m_doctorSyncTimer->start();
     m_plotValTimer->start();
     onDoctorSynctTimerTimeout();
+}
+
+BackendInterface::~BackendInterface()
+{
+    delete settings;
+    delete m_doctorSyncTimer;
+    delete m_plotValTimer;
+    delete m_shuffle;
 }
 
 void BackendInterface::connect2Web(const QString &state, const QJsonObject &data)
@@ -241,6 +250,8 @@ void BackendInterface::onEcgDataReceived(const QString &str)
 
 void BackendInterface::onDoctorSynctTimerTimeout()
 {
+    qDebug() << "Starting Sync ...";
+    // Remove the exclamation
     if(m_isLoggedIn)
     {
         _lastSyncTime = QDateTime::currentSecsSinceEpoch();
@@ -253,6 +264,7 @@ void BackendInterface::onDoctorSynctTimerTimeout()
 
         emit sendToCloudChanged("SyncRecords", getRecordObj);
     }
+    qDebug() << "--> sync End ...";
 }
 
 void BackendInterface::addEcgRecord(int bpm)
@@ -264,6 +276,11 @@ void BackendInterface::addEcgRecord(int bpm)
     getRecordObj.insert("content", getContentObj);
 
     emit sendToCloudChanged("AddEcgRecord", getRecordObj);
+}
+
+void BackendInterface::signOut()
+{
+    lastSyncTime=_lastSyncTime=0;
 }
 
 void BackendInterface::setMinBPM(int minBPM)
@@ -295,66 +312,110 @@ void BackendInterface::setAvgBPM(int avgBPM)
 
 void BackendInterface::onChatStrReceived(QString chats_str)
 {
-    // make a json object from the reply string
-    chats_str = "{\"data\":" + chats_str+"}";
-    qDebug() << "-- " << chats_str;
+    qDebug() << "Chat data received ...";
 
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(chats_str.toUtf8());
-    QJsonObject jsonObject = jsonResponse.object();
-    QJsonValue value = jsonObject.value("data");
-    QJsonArray array = value.toArray();
+    try{
+        // make a json object from the reply string
+        chats_str = "{\"data\":" + chats_str+"}";
 
-    qDebug() << "New Chats: " << array.count();
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(chats_str.toUtf8());
+        QJsonObject jsonObject = jsonResponse.object();
+        QJsonValue value = jsonObject.value("data");
+        QJsonArray array = value.toArray();
 
-    foreach (const QJsonValue & value, array)
-    {
-        QJsonObject jobj = value.toObject();
-        QString dt = QDateTime::fromSecsSinceEpoch(jobj.value(QString("fromDoctor")).toDouble()).toString("ddd, hh:mm AP");
-        emit chatMessageReceived(jobj.value(QString("date")).toBool(), jobj.value(QString("body")).toString(), dt);
+        qDebug() << "New Chats: " << array.count();
+
+        foreach (const QJsonValue & value, array)
+        {
+            QJsonObject jobj = value.toObject();
+            // qDebug() << jobj.value(QString("fromDoctor")).toBool();
+            bool state = m_doctorMode? !jobj.value(QString("fromDoctor")).toBool():jobj.value(QString("fromDoctor")).toBool();
+            QString dt = QDateTime::fromSecsSinceEpoch(jobj.value(QString("fromDoctor")).toDouble()).toString("ddd, hh:mm AP");
+            emit chatMessageReceived(state, jobj.value(QString("body")).toString(), dt);
+        }
     }
+
+    catch (std::exception &e)
+    {
+        qDebug() << "Error 1: " << e.what();
+    }
+
+    qDebug() << "Chat data end ...";
 }
 
 void BackendInterface::onBpmStrReceived(QString bpm_str)
 {
-    bpm_str = "{\"data\":" + bpm_str+"}";
+    qDebug() << "Starting BPM Sync ...";
 
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(bpm_str.toUtf8());
-    QJsonObject jsonObject = jsonResponse.object();
-    QJsonValue value = jsonObject.value("data");
-    QJsonArray array = value.toArray();
+    try{
+        bpm_str = "{\"data\":" + bpm_str+"}";
 
-    qDebug() << "New Data points: " << array.count();
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(bpm_str.toUtf8());
+        QJsonObject jsonObject = jsonResponse.object();
+        QJsonValue value = jsonObject.value("data");
+        QJsonArray array = value.toArray();
 
-    foreach (const QJsonValue & value, array)
-    {
-        QJsonObject jobj = value.toObject();
-        auto val = jobj.value(QString("bpm")).toInt();
-        emit chartDataReceived(jobj.value(QString("bpm")).toInt());
+        qDebug() << "New Data points: " << array.count();
 
-        if(val > maxBPM())
-            setMaxBPM(val);
+        foreach (const QJsonValue & value, array)
+        {
+            QJsonObject jobj = value.toObject();
+            auto val = jobj.value(QString("bpm")).toInt();
+            emit chartDataReceived(jobj.value(QString("bpm")).toInt());
 
-        if(val < minBPM())
-            setMinBPM(val);
+            if(m_data.size() >= 30)
+                m_data.removeFirst();
 
-        setAvgBPM((maxBPM()+minBPM())/2);
+            m_data.append(val);
+
+            auto mm = std::minmax_element(m_data.begin(), m_data.end());
+            setMaxBPM(*mm.second);
+            setMinBPM(*mm.first);
+
+            setAvgBPM((maxBPM()+minBPM())/2);
+        }
     }
+
+    catch (std::exception &e)
+    {
+        qDebug() << "Error 1: " << e.what();
+    }
+
+    qDebug() << "Ending BPM Sync ...";
 }
 
 void BackendInterface::onPlotValTimerTimerTimeout()
 {
-    if(m_isLoggedIn)
+    qDebug() << "Getting new data point ...";
+
+    if(m_isLoggedIn && !m_doctorMode)
     {
-        if(plot_index>=m_plotData.size())
-        {
-            plot_index=0;
+        try {
+            qDebug() << "Index: " << plot_index << "\tData" << m_plotData.size();
+
+            if(plot_index<0)
+                plot_index=0;
+
+
+            if(plot_index>=m_plotData.size())
+            {
+                plot_index=0;
+            }
+
+            qDebug() << "== " << plot_index;
+
+            addEcgRecord(m_plotData.at(plot_index));
+            plot_index++;
         }
 
-        addEcgRecord(m_plotData.at(plot_index));
-        plot_index++;
+        catch (std::exception &e)
+        {
+            qDebug() << "Error: " << e.what();
+        }
     }
-}
 
+    qDebug() << "Ending new data point ...";
+}
 void BackendInterface::setPlotData(QList<int> plotDaa)
 {
     if (m_plotData == plotDaa)

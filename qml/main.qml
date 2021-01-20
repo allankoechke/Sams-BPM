@@ -24,12 +24,6 @@ Window {
     property int loggedUserAge: 0
     property alias chatClientModel: chatClientModel
 
-    // Load 1st screen when the component has been completed
-    // Component.onCompleted: switchScreens()
-
-    // Invoke switching screens when the stack index changes
-    // onStackCurrentIndexChanged: switchScreens();
-
     StackLayout {
         id: stackView
         anchors.top: parent.top
@@ -97,7 +91,7 @@ Window {
 
                 icon: "\uf085"
                 isSelected: stackCurrentIndex===4
-                onClicked: stackCurrentIndex=4
+                // onClicked: stackCurrentIndex=4
             }
 
             MenuButton
@@ -141,7 +135,7 @@ Window {
 
         function onChatMessageReceived(fromDoc, msg, dt)
         {
-            chatClientModel.append(JSON.parse('{"_receivedMsg": '+(!fromDoc&&Backend.doctorMode)+', "body":"'+msg+'", "received_on": "'+dt+'"}'));
+            chatClientModel.append(JSON.parse('{"_receivedMsg": '+fromDoc+', "body":"'+msg+'", "received_on": "'+dt+'"}'));
         }
 
         function onIsLoggedInChanged(state)

@@ -27,7 +27,7 @@ ChartView
         id: yAxis
         labelFormat: "%.0f"
         labelsColor: "black"
-        min: 30; max: 110
+        min: 0; max: 110
         labelsFont:Qt.font({pointSize: 6})
     }
 
