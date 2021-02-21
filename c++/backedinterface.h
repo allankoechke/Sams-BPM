@@ -17,6 +17,7 @@
 #include <QJsonDocument>
 
 #include "WebInterfaceRunnable.h"
+#include "socketclientinterface.h"
 
 class BackendInterface : public QObject
 {
@@ -91,6 +92,7 @@ private:
     QThreadPool m_ThreadPool;
     QSettings * settings;
     QTimer * m_doctorSyncTimer, *m_plotValTimer, *m_shuffle;
+    // SocketClientInterface *socket;
 
     bool m_doctorMode=false, m_awaitingLoginReply=false;
     int m_minBPM=72, m_maxBPM=72, m_avgBPM=72, lastSyncTime = 0, _lastSyncTime = 0, plot_index=0;

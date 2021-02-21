@@ -8,7 +8,8 @@ CONFIG += c++11
 
 SOURCES += \
         c++/backedinterface.cpp \
-        c++/main.cpp
+        c++/main.cpp #\
+        # c++/socketclientinterface.cpp
 
 RESOURCES += qml.qrc
 
@@ -25,7 +26,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 HEADERS += \
     c++/WebInterfaceRunnable.h \
-    c++/backedinterface.h
+    c++/backedinterface.h # \
+    # c++/socketclientinterface.h
 
 DISTFILES += \
     android/AndroidManifest.xml \

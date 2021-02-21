@@ -3,15 +3,15 @@
 BackendInterface::BackendInterface(QObject *parent) : QObject(parent)
 {
     m_doctorSyncTimer = new QTimer(this);
-    m_doctorSyncTimer->setInterval(10000);
+    m_doctorSyncTimer->setInterval(5000);
     connect(m_doctorSyncTimer, &QTimer::timeout, this, &BackendInterface::onDoctorSynctTimerTimeout);
 
     m_plotValTimer = new QTimer(this);
-    m_plotValTimer->setInterval(10000);
+    m_plotValTimer->setInterval(5000);
     connect(m_plotValTimer, &QTimer::timeout, this, &BackendInterface::onPlotValTimerTimerTimeout);
 
     m_shuffle = new QTimer(this);
-    m_shuffle->setInterval(30000);
+    m_shuffle->setInterval(5000);
     m_shuffle->start();
     connect(m_shuffle, &QTimer::timeout, this, [=](){
         if(m_isLoggedIn && !m_doctorMode)
@@ -39,6 +39,8 @@ BackendInterface::BackendInterface(QObject *parent) : QObject(parent)
     m_doctorSyncTimer->start();
     m_plotValTimer->start();
     onDoctorSynctTimerTimeout();
+
+    // socket = new SocketClientInterface(this);
 }
 
 BackendInterface::~BackendInterface()
@@ -175,6 +177,18 @@ void BackendInterface::onWebRunnableFinished(const QString &str)
                     // Capture loggged in user details here
                     userJson["uname"]=userJson["email"];
                     emit loggedInUser(userJson);
+
+                    if(userJson["role"]=="doctor")
+                    {
+                        // Doctor logging in
+                        // socket->initClient();
+                    }
+
+                    else
+                    {
+                        // User logged in
+                        // socket->initServer();
+                    }
                 }
                 else
                     emit loginStatusChanged(false, "Invalid Login Details", false);
